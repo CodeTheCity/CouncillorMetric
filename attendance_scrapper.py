@@ -23,7 +23,7 @@ councillors = []
 for link in links:
     
     se_driver.get(link)
-    councillor_name = se_driver.find_element(By.ID, "modgov").find_element(By.TAG_NAME, "h1").text.strip()
+    councillor_name = se_driver.find_element(By.ID, "modgov").find_element(By.TAG_NAME, "h1").text.strip().strip().strip('"')
     councillor_img = se_driver.find_element(By.ID,"modgov").find_element(By.CLASS_NAME, "mgBigPhoto").find_element(By.TAG_NAME, "img").get_attribute("src")
     councillor_party_ward = se_driver.find_element(By.CLASS_NAME, "mgUserSideBar").find_elements(By.TAG_NAME, "p")
     councillor_party = councillor_party_ward[0].text

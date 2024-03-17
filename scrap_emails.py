@@ -1,5 +1,6 @@
 import csv
 import re
+import json
 
 from pathlib import Path
 from selenium import webdriver
@@ -23,7 +24,7 @@ def csv_reader(filename: str, fields: list) -> list[str]:
         next(csv_file_reader)
         list_of_rows = []
         for row in csv_file_reader:
-            list_of_rows.append(row)
+            list_of_rows.append(row) # modified to return the list of rows
             print(row)
         return list_of_rows
 
@@ -42,15 +43,39 @@ concilors_link = concilors.find_elements(By.TAG_NAME, "a")
 # Store all the links in a list
 links = [c.get_attribute("href") for c in concilors_link]
 
-for link in links:
-    se_driver.get(link)
+committees = dict()
+for i in range(len(links)):
+    se_driver.get(links[i])
+    councillor_name = se_driver.find_element(By.ID, "modgov").find_element(By.TAG_NAME, "h1").text.strip()
+    print(councillor_name)
+    committees[councillor_name] = []
     # get committees
-    div = se_driver.find_element(By.CLASS_NAME, "mgUserBody")
-    href = []
-    ul= div.find_element(By.CLASS_NAME, "mgBulletList").find_elements(By.TAG_NAME, "li").find_element(By.TAG_NAME, "a").get_attribute("href")
+    ul= se_driver.find_element(By.XPATH, "/html/body/div[2]/div[4]/div[3]/div[2]/div[2]/div[3]/ul[1]").find_elements(By.TAG_NAME, "li")
+    for x in ul:
+        committees[councillor_name].append(x.find_element(By.TAG_NAME, "a").get_attribute("href"))
 
-Content = se_driver.find_element(By.ID, "modgov").find_element(By.CLASS_NAME, "mgContent").text.strip("\n")
+committee_members = dict()
+for councillor in committees:
+    for href in committees[councillor]:
+        print(href)
+        se_driver.get(href)
+        ul = se_driver.find_element(By.XPATH, "/html/body/div[2]/div[4]/div[3]/div[2]/div[2]/ul/li[2]").find_element(By.TAG_NAME, "a").get_attribute("href")
+        se_driver.get(ul)
+        ul = se_driver.find_element(By.XPATH, "/html/body/div[2]/div[4]/div[3]/div[2]/div[2]/ul/li").find_element(By.TAG_NAME, "a").get_attribute("href")
+        se_driver.get(ul)
+        # get commitee name
+        committee_title = se_driver.find_element(By.XPATH, "/html/body/div[2]/div[4]/div[3]/div[2]/div[1]/h2").text
+        # get emails
+        Content = se_driver.find_element(By.XPATH, "/html/body/div[2]/div[4]/div[3]/div[2]/div[5]").find_element(By.TAG_NAME, "p").text
+        print(Content)
+        # Extracting the email addresses
+        emails = re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", Content)
+        print(emails)
+        committee_members[committee_title] = emails
 
-# Extracting the email addresses
-emails = re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", Content)
-print(emails)
+print(committee_members)
+se_driver.quit()
+
+
+with open("sample.json", "w") as outfile: 
+    json.dump(committee_members, outfile)
